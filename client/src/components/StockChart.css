@@ -1,0 +1,7 @@
+.chart-container {
+  background-color: var(--color-surface);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+}
