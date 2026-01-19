@@ -1,0 +1,13 @@
+{
+  "name": "hellodd",
+  "version": "1.0.0",
+  "description": "대전 코스닥 주가 모니터링 서비스",
+  "scripts": {
+    "install:all": "cd server && npm install && cd ../client && npm install",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
