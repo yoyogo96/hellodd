@@ -1,12 +1,13 @@
 import axios from 'axios';
 import { DAEJEON_KOSDAQ_STOCKS, findStockByYahooTicker } from '../models/stockList.js';
+import naverFinanceService from './naverFinanceService.js';
 
 // 메모리 캐시
 const priceCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5분 캐시
 
-// 데모 모드 (야후 파이낸스 API가 한국 주식을 지원하지 않을 때 사용)
-const DEMO_MODE = true;
+// 데모 모드 (false로 설정하면 실제 네이버 금융 데이터 사용)
+const DEMO_MODE = false;
 
 class StockDataService {
   constructor() {
@@ -147,7 +148,7 @@ class StockDataService {
       return cached.data;
     }
 
-    // 데모 모드이거나 API 실패 시 데모 데이터 사용
+    // 데모 모드이면 데모 데이터 사용
     if (DEMO_MODE) {
       const demoData = this.generateDemoData(stock);
       const result = {
@@ -166,13 +167,14 @@ class StockDataService {
       return result;
     }
 
+    // 실제 네이버 금융 데이터 사용
     try {
-      const data = await this.fetchYahooFinanceData(stock.yahooTicker, '5d');
+      const priceData = await naverFinanceService.fetchStockPrice(ticker);
       const result = {
         ticker: ticker,
         name: stock.name,
         sector: stock.sector,
-        ...data.current
+        ...priceData
       };
 
       // 캐시 저장
@@ -183,8 +185,8 @@ class StockDataService {
 
       return result;
     } catch (error) {
-      // API 실패 시 데모 데이터로 대체
-      console.warn(`${stock.name} API 호출 실패, 데모 데이터 사용`);
+      // 네이버 금융 실패 시 데모 데이터로 대체
+      console.warn(`${stock.name} 네이버 금융 크롤링 실패, 데모 데이터 사용:`, error.message);
       const demoData = this.generateDemoData(stock);
       const result = {
         ticker: ticker,
@@ -231,17 +233,20 @@ class StockDataService {
       };
     }
 
+    // 실제 네이버 금융 차트 데이터 사용
     try {
-      const data = await this.fetchYahooFinanceData(stock.yahooTicker, range);
+      const timeframe = range === '1mo' ? 'day' : range === '6mo' ? 'week' : 'month';
+      const historical = await naverFinanceService.fetchChartData(ticker, timeframe);
+
       return {
         ticker: ticker,
         name: stock.name,
         sector: stock.sector,
-        historical: data.historical
+        historical: historical
       };
     } catch (error) {
-      // API 실패 시 데모 데이터 사용
-      console.warn(`${stock.name} 과거 데이터 API 실패, 데모 데이터 사용`);
+      // 네이버 금융 실패 시 데모 데이터 사용
+      console.warn(`${stock.name} 차트 데이터 크롤링 실패, 데모 데이터 사용`);
       const demoData = this.generateDemoData(stock);
 
       let days = 90;
